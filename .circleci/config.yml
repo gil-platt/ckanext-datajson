@@ -4,7 +4,6 @@ jobs:
     working_directory: ~/ckanext-datajson
     machine:
       image: circleci/classic:201708-01
-      # image: circleci/postgres:9.6-alpine
     environment:
       CKANVERSION=2.8
     steps:
@@ -13,17 +12,34 @@ jobs:
           name: where am I
           command: pwd && ls -la
       - run:
-          name: install
-          command: bin/travis-build.bash
+          name: Install Docker Compose
+          command: |
+            set -x
+            sudo curl -L "https://github.com/docker/compose/releases/download/1.25.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            docker-compose --version
       - run:
-          name: test
-          command: bin/travis-run.sh
+          name: Start CKAN
+          command: |
+            docker-compose build
+            docker-compose up -d
+      - run:
+          name: install dockerize
+          command: wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          environment:
+            DOCKERIZE_VERSION: v0.3.0
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://localhost:5432
+      - run:
+          name: Run ckanext-datajson Tests
+          command: |
+            docker-compose exec ckan /bin/bash -c "nosetests --ckan --with-pylons=src_extensions/datajson/docker_test.ini src_extensions/datajson/"
 
   build_ckan_23:
     working_directory: ~/ckanext-datajson
     machine:
       image: circleci/classic:201708-01
-      # image: circleci/postgres:9.6-alpine
     environment:
       CKANVERSION=2.3
     steps:
@@ -42,7 +58,6 @@ jobs:
     working_directory: ~/ckanext-datajson
     machine:
       image: circleci/classic:201708-01
-      # image: circleci/postgres:9.6-alpine
     environment:
       CKANVERSION=inventory
     steps:
@@ -61,7 +76,6 @@ jobs:
     working_directory: ~/ckanext-datajson
     machine:
       image: circleci/classic:201708-01
-      # image: circleci/postgres:9.6-alpine
     environment:
       CKANVERSION=datagov
     steps:
