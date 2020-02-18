@@ -349,6 +349,7 @@ class DatasetHarvesterBase(HarvesterBase):
     # validate dataset against POD schema
     # use a local copy.
     def _validate_dataset(self, validator_schema, schema_version, dataset):
+        log.debug('Dataset: %s' % repr(dataset))
         if validator_schema == 'non-federal':
             if schema_version == '1.1':
                 file_path = 'pod_schema/non-federal-v1.1/dataset-non-federal.json'
