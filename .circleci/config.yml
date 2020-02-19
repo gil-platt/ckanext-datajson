@@ -34,6 +34,15 @@ jobs:
       - run:
           name: Run ckanext-datajson Tests
           command: |
+            i=0
+            while ! bash -c "cat < /dev/null > /dev/tcp/localhost/5432"; do
+              i=$(($i+1))
+              if [ "$i" -gt 7 ]; then
+                echo "Cannot connect to database. Make sure it is running and the web container is linked to it."
+                exit 1;
+              fi
+              sleep 2;
+            done
             docker-compose exec ckan /bin/bash -c "nosetests --ckan --with-pylons=src_extensions/datajson/docker_test.ini src_extensions/datajson/"
 
   build_ckan_23:
