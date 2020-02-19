@@ -1,7 +1,7 @@
 version: "3.2"
 services:
   ckan:
-    build: 
+    build:
       context: ckan-docker
     env_file:
       - .env
@@ -16,19 +16,22 @@ services:
     volumes:
       - ckan_storage:/var/lib/ckan
       - .:/srv/app/src_extensions/datajson
+
   db:
     image: ckan/postgresql
     restart: always
     ports:
-      - "5432:5432"
+      - "5432"
+
   solr:
     image: ckan/solr
     restart: always
-    expose:
+    ports:
       - "8983"
+
   redis:
     image: redis:alpine
-  
+
 volumes:
   ckan_storage:
   pg_data:
