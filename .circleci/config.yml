@@ -22,7 +22,7 @@ jobs:
             DOCKERIZE_VERSION: v0.3.0
       - run:
           name: Wait for ckan
-          command: dockerize -wait http://localhost:5000/dataset
+          command: dockerize -wait http://localhost:5000/dataset -timeout 120s
       - run:
           name: Run ckanext-datajson Tests
           command: |
