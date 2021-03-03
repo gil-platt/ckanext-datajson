@@ -43,6 +43,7 @@ class DataJsonPlugin(p.SingletonPlugin):
         DataJsonPlugin.ld_id = config.get("ckanext.datajsonld.id", config.get("ckan.site_url"))
         DataJsonPlugin.ld_title = config.get("ckan.site_title", "Catalog")
         DataJsonPlugin.site_url = config.get("ckan.site_url")
+        DataJsonPlugin.map_path = config.get("ckanext.datajson.map_path", "export.map.json")
 
         DataJsonPlugin.inventory_links_enabled = config.get("ckanext.datajson.inventory_links_enabled",
                                                             "False") == 'True'
@@ -209,7 +210,7 @@ class DataJsonController(BaseController):
                 packages = DataJsonController._get_ckan_datasets()
                 # packages = p.toolkit.get_action("current_package_list_with_resources")(None, {})
 
-            json_export_map = get_export_map_json('export.map.json')
+            json_export_map = get_export_map_json(DataJsonPlugin.map_path)
 
             if json_export_map:
                 for pkg in packages:
