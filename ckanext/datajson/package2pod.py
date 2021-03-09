@@ -454,19 +454,6 @@ class Wrappers:
                     resource['downloadURL'] = res_url
                 else:
                     resource['accessURL'] = res_url
-                # if r.get('resource_type') in ['api', 'accessurl']:
-                #     resource['accessURL'] = res_url
-                #     if 'mediaType' in resource:
-                #         resource.pop('mediaType')
-                # else:
-                #     if 'accessURL' in resource:
-                #         resource.pop('accessURL')
-                #     resource['downloadURL'] = res_url
-                #     if 'mediaType' not in resource:
-                #         # import pdb; pdb.set_trace()
-                #         # resource['mediaType'] = Wrappers.mime_type_it(r['name'])
-                #         log.warn("Missing mediaType for resource in package ['%s']", package.get('id'))
-                #         log.warn("Could try using %s", r)
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
@@ -482,7 +469,9 @@ class Wrappers:
         if value:
             return value
 
-        if 'organization' not in Wrappers.pkg or 'title' not in Wrappers.pkg.get('organization'):
+        if 'organization' not in Wrappers.pkg:
+            return None
+        if 'title' not in Wrappers.pkg.get('organization'):
             return None
         org_title = Wrappers.pkg.get('organization').get('title')
         log.debug("org title: %s", org_title)

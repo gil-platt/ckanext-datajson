@@ -16,7 +16,6 @@ from helpers import get_export_map_json, detect_publisher, get_validator
 from package2pod import Package2Pod
 
 logger = logging.getLogger(__name__)
-draft4validator = get_validator()
 
 try:
     from collections import OrderedDict  # 2.7
@@ -43,7 +42,7 @@ class DataJsonPlugin(p.SingletonPlugin):
         DataJsonPlugin.ld_id = config.get("ckanext.datajsonld.id", config.get("ckan.site_url"))
         DataJsonPlugin.ld_title = config.get("ckan.site_title", "Catalog")
         DataJsonPlugin.site_url = config.get("ckan.site_url")
-        DataJsonPlugin.map_path = config.get("ckanext.datajson.map_path", "export.map.json")
+        DataJsonPlugin.schema_type = config.get("ckanext.datajson.schema_type", "federal-v1.1")
 
         DataJsonPlugin.inventory_links_enabled = config.get("ckanext.datajson.inventory_links_enabled",
                                                             "False") == 'True'
@@ -210,7 +209,7 @@ class DataJsonController(BaseController):
                 packages = DataJsonController._get_ckan_datasets()
                 # packages = p.toolkit.get_action("current_package_list_with_resources")(None, {})
 
-            json_export_map = get_export_map_json(DataJsonPlugin.map_path)
+            json_export_map = get_export_map_json('export.map.json')
 
             if json_export_map:
                 for pkg in packages:
@@ -264,10 +263,10 @@ class DataJsonController(BaseController):
                         publisher = detect_publisher(extras)
                         if errors:
                             logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason below:\n\t%s\n",
-                                        pkg.get('id', None), pkg.get('title', None), publisher, errors)
+                                        pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'), errors)
                         else:
                             logger.warn("Dataset id=[%s], title=[%s], organization=[%s] omitted, reason above.\n",
-                                        pkg.get('id', None), pkg.get('title', None), publisher)
+                                        pkg.get('id', None), pkg.get('title', None), pkg.get('organization').get('title'))
 
                 data = Package2Pod.wrap_json_catalog(output, json_export_map)
         except Exception as e:
@@ -320,7 +319,7 @@ class DataJsonController(BaseController):
         Validates a data.json entry against the DCAT_US JSON schema.
         Log a warning message on validation error
         """
-        error = best_match(draft4validator.iter_errors(instance))
+        error = best_match(get_validator(schema_type=DataJsonPlugin.schema_type).iter_errors(instance))
         if error:
             logger.warn("===================================================\r\n"+
                         "Validation failed, best guess of error:\r\n %s\r\nFor this dataset:\r\n", error)
