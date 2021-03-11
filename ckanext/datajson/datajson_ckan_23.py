@@ -357,7 +357,7 @@ class DatasetHarvesterBase(HarvesterBase):
     def _validate_dataset(self, validator_schema, schema_version, dataset):
         if validator_schema == 'non-federal':
             if schema_version == '1.1':
-                file_path = 'pod_schema/non-federal-v1.1/dataset-non-federal.json'
+                file_path = 'pod_schema/non-federal-v1.1/dataset.json'
             else:
                 file_path = 'pod_schema/non-federal/single_entry.json'
         else:

@@ -3,6 +3,13 @@ try:
 except ImportError:
     from sqlalchemy.util import OrderedDict
 
+import string
+import os
+import sys
+import json
+import ckan.plugins.toolkit as tk
+import collections
+
 from logging import getLogger
 
 from helpers import *
@@ -72,8 +79,20 @@ class Package2Pod:
 
     @staticmethod
     def export_map_fields(package, json_export_map, redaction_enabled=False):
-        import string
-        import sys, os
+        # If already harvested DCAT-US format, it should already be validated; use original
+        try:
+            harvest_object_id = get_extra(package, 'harvest_object_id')
+            bureau_code = get_extra(package, 'bureau_code')
+            # If harvested and has bureau code (only DCAT-US has this metadata field)
+            if harvest_object_id and bureau_code:
+                harvest_obj = tk.get_action('harvest_object_show')({}, {'id': harvest_object_id})
+                parsed_obj = json.loads(harvest_obj['content'], object_pairs_hook=collections.OrderedDict)
+                return parsed_obj
+        except Exception as e:
+            # Something went wrong getting the harvest object, log and attempt package build
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            log.error("%s : %s : %s : %s", exc_type, filename, exc_tb.tb_lineno, unicode(e))
 
         public_access_level = get_extra(package, 'public_access_level')
         if not public_access_level or public_access_level not in ['non-public', 'restricted public']:
@@ -429,16 +448,12 @@ class Wrappers:
             if res_url:
                 res_url = res_url.replace('http://[[REDACTED', '[[REDACTED')
                 res_url = res_url.replace('http://http', 'http')
-                if r.get('resource_type') in ['api', 'accessurl']:
-                    resource['accessURL'] = res_url
-                    if 'mediaType' in resource:
-                        resource.pop('mediaType')
-                else:
+                if 'mediaType' in resource:
                     if 'accessURL' in resource:
                         resource.pop('accessURL')
                     resource['downloadURL'] = res_url
-                    if 'mediaType' not in resource:
-                        log.warn("Missing mediaType for resource in package ['%s']", package.get('id'))
+                else:
+                    resource['accessURL'] = res_url
             else:
                 log.warn("Missing downloadURL for resource in package ['%s']", package.get('id'))
 
@@ -454,7 +469,9 @@ class Wrappers:
         if value:
             return value
 
-        if not 'organization' not in Wrappers.pkg or 'title' not in Wrappers.pkg.get('organization'):
+        if 'organization' not in Wrappers.pkg:
+            return None
+        if 'title' not in Wrappers.pkg.get('organization'):
             return None
         org_title = Wrappers.pkg.get('organization').get('title')
         log.debug("org title: %s", org_title)
@@ -499,3 +516,15 @@ class Wrappers:
         msg = value + ' ... BECOMES ... ' + mime_type
         log.debug(msg)
         return mime_type
+
+    @staticmethod
+    def ckan_identifier(value):
+        if value:
+            return value
+        return Wrappers.pkg.get('id')
+        
+    @staticmethod
+    def modified_date(value):
+        if value:
+            return value
+        return get_extra(Wrappers.pkg, 'metadata-date')
