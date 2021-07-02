@@ -482,7 +482,7 @@ class Wrappers:
             default_bureau_code = Wrappers.full_field_map.get('bureauCode').get('default')
             if default_bureau_code is not None:
                 log.debug("No match found, using default: %s", default_bureau_code)
-                return default_bureau_code
+                return [default_bureau_code]
             return None
 
         bureau = code_list.get(org_title)
