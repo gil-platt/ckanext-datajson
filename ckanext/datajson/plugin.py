@@ -37,6 +37,7 @@ class DataJsonPlugin(p.SingletonPlugin):
         # DataJsonPlugin.route_edata_path = config.get("ckanext.enterprisedatajson.path", "/enterprisedata.json")
         DataJsonPlugin.route_enabled = config.get("ckanext.datajson.url_enabled", "True") == 'True'
         DataJsonPlugin.route_path = config.get("ckanext.datajson.path", "/data.json")
+        DataJsonPlugin.cache_path = config.get("ckanext.datajson.cache_path", "/cache_data.json")
         DataJsonPlugin.route_ld_path = config.get("ckanext.datajsonld.path",
                                                   re.sub(r"\.json$", ".jsonld", DataJsonPlugin.route_path))
         DataJsonPlugin.ld_id = config.get("ckanext.datajsonld.id", config.get("ckan.site_url"))
@@ -66,8 +67,15 @@ class DataJsonPlugin(p.SingletonPlugin):
     def after_map(self, m):
         if DataJsonPlugin.route_enabled:
             # /data.json and /data.jsonld (or other path as configured by user)
+
+            # Have 2 routes: 1 to create the json file (and store locally),
+            # the other to return the local file
             m.connect('datajson_export', DataJsonPlugin.route_path,
+                      controller='ckanext.datajson.plugin:DataJsonController', action='return_json')
+
+            m.connect('datajson_creation', DataJsonPlugin.cache_path,
                       controller='ckanext.datajson.plugin:DataJsonController', action='generate_json')
+
             m.connect('organization_export', '/organization/{org_id}/data.json',
                       controller='ckanext.datajson.plugin:DataJsonController', action='generate_org_json')
             # TODO commenting out enterprise data inventory for right now
@@ -96,6 +104,23 @@ class DataJsonPlugin(p.SingletonPlugin):
 
 class DataJsonController(BaseController):
     _errors_json = []
+
+    def return_json(self):
+        try:
+            data_json_file = open('site_data.json')
+            cached_json = data_json_file.read()
+            response.content_type = 'application/json; charset=UTF-8'
+
+            # allow caching of response (e.g. by Apache)
+            del response.headers["Cache-Control"]
+            del response.headers["Pragma"]
+            data_json_file.close()
+            return p.toolkit.literal(cached_json)
+        except:
+            # Either the file doesn't exist, or something is wrong.
+            # Generate the file on the fly.
+            logger.debug("The datajson file doesn't exist, creating it")
+            return self.generate_output('json')
 
     def generate_json(self):
         return self.generate_output('json')
@@ -175,6 +200,11 @@ class DataJsonController(BaseController):
         #         ("foaf:homepage", DataJsonPlugin.site_url),
         #         ("dcat:dataset", [dataset_to_jsonld(d) for d in data.get('dataset')]),
         #     ])
+
+        if org_id is None:
+            data_json_file = open('site_data.json', 'w')
+            data_json_file.write(json.dumps(data, indent=2))
+            data_json_file.close()
 
         return p.toolkit.literal(json.dumps(data, indent=2))
 
