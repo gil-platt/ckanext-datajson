@@ -387,7 +387,7 @@ class Wrappers:
             if email:
                 contact_point['hasEmail'] = email
 
-            return contact_point
+            return dict(contact_point)
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             filename = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
